@@ -124,6 +124,61 @@ using string = std::basic_string<SQLCHAR>;
 inline string make_string(const char* str) noexcept;
 inline string make_string(const std::string& str);
 
+enum class data_type {
+    character,
+    wide_character,
+    short_integer,
+    unsigned_short_integer,
+    integer,
+    unsigned_integer,
+    single_float,
+    double_float,
+    bit,
+    byte,
+    unsigned_byte,
+    long_integer,
+    unsigned_long_integer,
+    binary,
+    bookmark,
+    var_bookmark,
+    date,
+    time,
+    timestamp,
+    numeric,
+    guid,
+    interval
+};
+
+class datum {
+    public:
+        datum(data_type type, void* data);
+
+    private:
+        data_type type_;
+        union odbc_datum {
+            SQLCHAR* character;
+            SQLWCHAR* wide_character;
+            SQLSMALLINT short_integer;
+            SQLUSMALLINT unsigned_short_integer;
+            SQLREAL single_float;
+            SQLDOUBLE double_float;
+            SQLCHAR bit;
+            SQLSCHAR byte;
+            SQLCHAR unsigned_byte;
+            SQLBIGINT long_integer;
+            SQLUBIGINT unsigned_long_integer;
+            SQLCHAR* binary;
+            BOOKMARK bookmark;
+            SQLCHAR* var_bookmark;
+            SQL_DATE_STRUCT date;
+            SQL_TIME_STRUCT time;
+            SQL_TIMESTAMP_STRUCT timestamp;
+            SQL_NUMERIC_STRUCT numeric;
+            SQLGUID guid;
+            SQL_INTERVAL_STRUCT interval;
+        } datum_;
+};
+
 class query;
 
 class connection {
@@ -175,7 +230,7 @@ class connection {
 class query {
     public:
         query(detail::handle<detail::handle_type::connection>& conn)
-            : stmt_(conn) {}
+            : stmt_(conn), ready_(false) {}
 
         query(const query&) = delete;
 
@@ -197,6 +252,7 @@ class query {
 
     private:
         detail::handle<detail::handle_type::statement> stmt_;
+        bool ready_;
 };
 
 inline query connection::make_query()
