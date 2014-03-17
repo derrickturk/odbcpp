@@ -9,11 +9,8 @@ int main()
 {
     using namespace odbcpp;
 
-    connection conn;
-    assert(!conn);
+    connection conn("DRIVER=sql server;SERVER=VM-TXSQLDEV02\\BBE;Trusted Connection=Yes;Database=DSS_SFS;");
 
-    assert(!conn.connect(make_string("bad string rising")));
+    auto q = conn.make_query();
 
-    conn.connect(make_string("DRIVER=sql server;SERVER=VM-TXSQLDEV02\\BBE;Trusted Connection=Yes;Database=DSS_SFS;"));
-    assert(conn);
 }

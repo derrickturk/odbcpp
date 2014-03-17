@@ -124,6 +124,8 @@ using string = std::basic_string<SQLCHAR>;
 inline string make_string(const char* str) noexcept;
 inline string make_string(const std::string& str);
 
+class query;
+
 class connection {
     public:
         connection()
@@ -131,6 +133,10 @@ class connection {
 
         connection(const string& conn_str)
             : connection() { connect(conn_str); }
+
+        template<class StrType>
+        connection(const StrType& conn_str)
+            : connection(make_string(conn_str)) {}
 
         connection(const connection&) = delete;
 
@@ -152,6 +158,8 @@ class connection {
 
         explicit operator bool() const noexcept { return connected_; }
 
+        query make_query();
+
     private:
         detail::handle<detail::handle_type::connection> conn_;
 
@@ -163,6 +171,32 @@ class connection {
             env_initializer();
         } env_init_;
 };
+
+class query {
+    public:
+        query(detail::handle<detail::handle_type::connection>& conn)
+            : stmt_(conn) {}
+
+        query(const query&) = delete;
+
+        query(query&&) noexcept = default;
+
+        query& operator=(const query&) = delete;
+
+        query& operator=(query&&) noexcept = default;
+
+        ~query() noexcept = default;
+
+        void execute(const string& statement);
+
+    private:
+        detail::handle<detail::handle_type::statement> stmt_;
+};
+
+inline query connection::make_query()
+{
+    return query(conn_);
+}
 
 inline connection::env_initializer::env_initializer()
 {

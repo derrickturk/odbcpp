@@ -6,6 +6,15 @@ detail::handle<detail::handle_type::environment> connection::shared_env_ {};
 
 connection::env_initializer connection::env_init_ {};
 
+void query::execute(const string& statement)
+{
+    auto ret = SQLExecDirect(stmt_,
+            const_cast<string::value_type*>(statement.c_str()), SQL_NTS);
+
+    if (!SQL_SUCCEEDED(ret))
+        throw std::runtime_error("Statement execution failed!");
+}
+
 bool connection::connect(const string& conn_str, bool prompt)
 {
     if (connected_)
