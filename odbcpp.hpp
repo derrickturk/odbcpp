@@ -102,6 +102,8 @@ class handle {
 }
 
 using string = std::basic_string<SQLCHAR>;
+inline string make_string(const char* str) noexcept;
+inline string make_string(const std::string& str);
 
 class connection {
     public:
@@ -144,6 +146,16 @@ inline connection::env_initializer::env_initializer(
 
     if (!SQL_SUCCEEDED(ret))
         throw std::runtime_error("Failed to set environment attributes.");
+}
+
+inline string make_string(const char* str) noexcept
+{
+    return string(reinterpret_cast<const string::value_type*>(str));
+}
+
+inline string make_string(const std::string& str)
+{
+    return string(begin(str), end(str));
 }
 
 }
