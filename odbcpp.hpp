@@ -108,7 +108,7 @@ inline string make_string(const std::string& str);
 class connection {
     public:
         connection()
-            : env_(), env_init_(env_), conn_(env_), connected_(false) {}
+            : conn_(shared_env_), connected_(false) {}
 
         connection(const string& conn_str)
             : connection() { connect(conn_str); }
@@ -126,22 +126,20 @@ class connection {
         explicit operator bool() const noexcept { return connected_; }
 
     private:
-        detail::handle<detail::handle_type::environment> env_;
-
-        struct env_initializer {
-            env_initializer(
-                    detail::handle<detail::handle_type::environment>& evt);
-        } env_init_;
-
         detail::handle<detail::handle_type::connection> conn_;
 
         bool connected_;
+
+        static detail::handle<detail::handle_type::environment> shared_env_;
+
+        static struct env_initializer {
+            env_initializer();
+        } env_init_;
 };
 
-inline connection::env_initializer::env_initializer(
-        detail::handle<detail::handle_type::environment>& evt)
+inline connection::env_initializer::env_initializer()
 {
-    auto ret = SQLSetEnvAttr(evt, SQL_ATTR_ODBC_VERSION,
+    auto ret = SQLSetEnvAttr(shared_env_, SQL_ATTR_ODBC_VERSION,
             reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0);
 
     if (!SQL_SUCCEEDED(ret))

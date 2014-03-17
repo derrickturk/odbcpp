@@ -2,6 +2,10 @@
 
 namespace odbcpp {
 
+detail::handle<detail::handle_type::environment> connection::shared_env_ {};
+
+connection::env_initializer connection::env_init_ {};
+
 bool connection::connect(const string& conn_str, bool prompt)
 {
     if (connected_)
