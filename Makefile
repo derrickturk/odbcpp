@@ -1,6 +1,6 @@
 CXX=g++
 CXXOPTS=-std=c++11 -Wall -Wextra -Werror -pedantic -static-libgcc -static-libstdc++
-OPTOPTS=-g
+OPTOPTS=-fno-rtti -O3 -DNDEBUG
 LINKOPTS=-lodbc32
 
 test.exe: test.cpp odbcpp.o

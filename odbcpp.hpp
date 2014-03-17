@@ -85,6 +85,24 @@ class handle {
                         handle_traits<HType>::alloc_fail_msg);
         }
 
+        handle(const handle&) = delete;
+
+        handle(handle&& other) noexcept
+        {
+            h_ = other.h_;
+            other.h_ = SQL_NULL_HANDLE;
+        }
+
+        handle& operator=(const handle&) = delete;
+
+        handle& operator=(handle&& other) noexcept
+        {
+            h_ = other.h_;
+            other.h_ = SQL_NULL_HANDLE;
+
+            return *this;
+        }
+
         operator native_handle() noexcept
         {
             return h_;
@@ -92,7 +110,8 @@ class handle {
 
         ~handle() noexcept
         {
-            SQLFreeHandle(handle_traits<HType>::native_tag, h_);
+            if (h_ != SQL_NULL_HANDLE)
+                SQLFreeHandle(handle_traits<HType>::native_tag, h_);
         }
 
     private:
