@@ -189,6 +189,12 @@ class query {
 
         void execute(const string& statement);
 
+        template<class StrType>
+        void execute(const StrType& statement)
+        {
+            execute(make_string(statement));
+        }
+
     private:
         detail::handle<detail::handle_type::statement> stmt_;
 };
