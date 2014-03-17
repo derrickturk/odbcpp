@@ -132,6 +132,14 @@ class connection {
         connection(const string& conn_str)
             : connection() { connect(conn_str); }
 
+        connection(const connection&) = delete;
+
+        connection(connection&& other) noexcept = default;
+
+        connection& operator=(const connection&) = delete;
+
+        connection& operator=(connection&& other) noexcept = default;
+
         ~connection() noexcept { disconnect(); }
 
         bool connect(const string& conn_str, bool prompt=false);
