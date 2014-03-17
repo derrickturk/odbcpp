@@ -2,9 +2,11 @@
 
 #include <stdexcept>
 #include <type_traits>
+#include <string>
 
 #include "windows.h"
 #include "sql.h"
+#include "sqlext.h"
 
 namespace odbcpp {
 
@@ -16,16 +18,6 @@ enum class handle_type : char {
     statement,
     descriptor
 };
-
-template<handle_type HType>
-class handle;
-
-}
-
-class connection {
-};
-
-namespace detail {
 
 template<handle_type HType>
 struct handle_traits;
@@ -90,7 +82,7 @@ class handle {
                     context, &h_);
             if (!SQL_SUCCEEDED(ret))
                 throw std::runtime_error(
-                        "Failed to allocate environment handle.");
+                        handle_traits<HType>::alloc_fail_msg);
         }
 
         operator native_handle() noexcept
@@ -107,6 +99,51 @@ class handle {
         typename handle_traits<HType>::native_type h_;
 };
 
+}
+
+using string = std::basic_string<SQLCHAR>;
+
+class connection {
+    public:
+        connection()
+            : env_(), env_init_(env_), conn_(env_), connected_(false) {}
+
+        connection(const string& conn_str)
+            : connection() { connect(conn_str); }
+
+        ~connection() noexcept { disconnect(); }
+
+        bool connect(const string& conn_str, bool prompt=false);
+
+        void disconnect() noexcept
+        {
+            if (connected_)
+                SQLDisconnect(conn_);
+        }
+
+        explicit operator bool() const noexcept { return connected_; }
+
+    private:
+        detail::handle<detail::handle_type::environment> env_;
+
+        struct env_initializer {
+            env_initializer(
+                    detail::handle<detail::handle_type::environment>& evt);
+        } env_init_;
+
+        detail::handle<detail::handle_type::connection> conn_;
+
+        bool connected_;
+};
+
+inline connection::env_initializer::env_initializer(
+        detail::handle<detail::handle_type::environment>& evt)
+{
+    auto ret = SQLSetEnvAttr(evt, SQL_ATTR_ODBC_VERSION,
+            reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0);
+
+    if (!SQL_SUCCEEDED(ret))
+        throw std::runtime_error("Failed to set environment attributes.");
 }
 
 }

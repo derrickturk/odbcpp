@@ -1,9 +1,11 @@
 #include "odbcpp.hpp"
 
+#include "sql.h"
+#include "sqlext.h"
+
 int main()
 {
     using namespace odbcpp;
 
-    detail::handle<detail::handle_type::environment> henv;
-    detail::handle<detail::handle_type::connection> conn(henv);
+    connection conn;
 }
