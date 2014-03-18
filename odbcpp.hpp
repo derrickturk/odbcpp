@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <type_traits>
+#include <vector>
 #include <string>
 
 #include "windows.h"
@@ -138,13 +139,24 @@ inline string make_string(const std::string& str);
     mac(unsigned_long_integer, SQLUBIGINT, SQL_C_UBIGINT) \
     mac(binary, SQLCHAR*, SQL_C_BINARY) \
     mac(bookmark, BOOKMARK, SQL_C_BOOKMARK) \
-    mac(var_bookmark, SQLCHAR*, SQL_C_VARBOOKMARK) \
     mac(date, SQL_DATE_STRUCT, SQL_C_TYPE_DATE) \
     mac(time, SQL_TIME_STRUCT, SQL_C_TYPE_TIME) \
     mac(timestamp, SQL_TIMESTAMP_STRUCT, SQL_C_TYPE_TIMESTAMP) \
     mac(numeric, SQL_NUMERIC_STRUCT, SQL_C_NUMERIC) \
     mac(guid, SQLGUID, SQL_C_GUID) \
-    mac(interval, SQL_INTERVAL_STRUCT, SQL_INTERVAL_STRUCT)
+    mac(interval_year, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_YEAR) \
+    mac(interval_month, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_MONTH) \
+    mac(interval_day, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_DAY) \
+    mac(interval_hour, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_HOUR) \
+    mac(interval_minute, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_MINUTE) \
+    mac(interval_second, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_SECOND) \
+    mac(interval_year_to_month, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_YEAR_TO_MONTH) \
+    mac(interval_day_to_hour, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_DAY_TO_HOUR) \
+    mac(interval_day_to_minute, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_DAY_TO_MINUTE) \
+    mac(interval_day_to_second, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_DAY_TO_SECOND) \
+    mac(interval_hour_to_minute, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_HOUR_TO_MINUTE) \
+    mac(interval_hour_to_second, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_HOUR_TO_SECOND) \
+    mac(interval_minute_to_second, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_MINUTE_TO_SECOND)
 
 enum class data_type {
 #define ENUMERATE_TAGS(tag, type, odbc_tag) tag,
@@ -174,7 +186,7 @@ inline data_type type_from_odbc_tag(SQLSMALLINT odbc_tag)
 {
     switch (odbc_tag) {
 #define CASE_REVERSE(tag, type, _odbc_tag) \
-        case _odbc_tag : return tag;
+        case _odbc_tag : return data_type::tag;
 
         FOR_EACH_DATA_TYPE(CASE_REVERSE)
 
@@ -188,7 +200,7 @@ inline SQLSMALLINT odbc_tag_from_type(data_type type)
 {
     switch (type) {
 #define CASE_FORWARD(tag, type, odbc_tag) \
-        case tag : return odbc_tag;
+        case data_type::tag : return odbc_tag;
 
         FOR_EACH_DATA_TYPE(CASE_FORWARD)
 
@@ -197,16 +209,6 @@ inline SQLSMALLINT odbc_tag_from_type(data_type type)
 
     throw std::invalid_argument("Bad type tag!");
 }
-
-#define SPECIALIZE_REVERSE(_tag, type, odbc_tag) \
-template<> \
-struct odbc_type_translate<odbc_tag> { \
-    static const data_type tag = _tag; \
-};
-
-FOR_EACH_DATA_TYPE(SPECIALIZE_REVERSE)
-
-#undef SPECIALIZE_REVERSE
 
 }
 
@@ -314,15 +316,15 @@ class connection {
 class query {
     public:
         query(detail::handle<detail::handle_type::connection>& conn)
-            : stmt_(conn), ready_(false), fields_() {}
+            : stmt_(conn), fields_(), ready_(false) {}
 
         query(const query&) = delete;
 
-        query(query&&) noexcept = default;
+        query(query&&) = default;
 
         query& operator=(const query&) = delete;
 
-        query& operator=(query&&) noexcept = default;
+        query& operator=(query&&) = default;
 
         ~query() noexcept = default;
 
@@ -360,7 +362,7 @@ inline connection::env_initializer::env_initializer()
         throw std::runtime_error("Failed to set environment attributes.");
 }
 
-inline const fieldset& query::fields() const
+inline const std::vector<field>& query::fields() const
 {
     if (!ready_)
         throw std::runtime_error("No executed statement!");

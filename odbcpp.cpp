@@ -48,12 +48,12 @@ void query::update_fields()
             throw std::runtime_error("Unable to get field metadata!");
 
         new_fields.push_back({
-                std::string(static_cast<char*>(name_buf)),
+                std::string(reinterpret_cast<char*>(&name_buf[0])),
                 detail::type_from_odbc_tag(odbc_type),
                 col_size,
-                decimal_digits,
+                static_cast<std::size_t>(decimal_digits),
                 nullable != SQL_NO_NULLS,
-                name_len < max_len - 1
+                static_cast<std::size_t>(name_len) < max_len - 1
         });
     }
 
