@@ -71,7 +71,8 @@ class handle {
                     SQL_NULL_HANDLE, &h_);
             if (!SQL_SUCCEEDED(ret))
                 throw std::runtime_error(
-                        handle_traits<HType>::alloc_fail_msg);
+                        std::string(handle_traits<HType>::alloc_fail_msg)
+                        + " : " + error_message());
         }
 
         template<class C=context_type>
@@ -83,7 +84,8 @@ class handle {
                     context, &h_);
             if (!SQL_SUCCEEDED(ret))
                 throw std::runtime_error(
-                        handle_traits<HType>::alloc_fail_msg);
+                        std::string(handle_traits<HType>::alloc_fail_msg)
+                        + " : " + error_message());
         }
 
         handle(const handle&) = delete;
@@ -114,6 +116,8 @@ class handle {
             if (h_ != SQL_NULL_HANDLE)
                 SQLFreeHandle(handle_traits<HType>::native_tag, h_);
         }
+
+        std::string error_message() noexcept;
 
     private:
         typename handle_traits<HType>::native_type h_;
@@ -199,6 +203,20 @@ inline SQLSMALLINT odbc_sql_tag_from_type(data_type type)
     throw std::invalid_argument("Bad type tag!");
 }
 
+inline bool is_pointer_type(data_type type)
+{
+    switch (type) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
+        case data_type::tag : return std::is_pointer<type>::value;
+
+#include "data_types.def"
+
+#undef FOR_EACH_DATA_TYPE
+    }
+
+    throw std::invalid_argument("Bad type tag!");
+}
+
 }
 
 constexpr const char* type_name(data_type type) noexcept
@@ -208,7 +226,9 @@ constexpr const char* type_name(data_type type) noexcept
 
 class datum {
     public:
-        datum(data_type type, void* data);
+        datum(datum&& other) = default;
+
+        datum& operator=(datum&& other) = default;
 
         data_type type() const { return type_; }
 
@@ -224,6 +244,9 @@ class datum {
         }
 
     private:
+        datum(data_type type)
+            : type_(type), null_(false), datum_() {}
+
         data_type type_;
         bool null_;
         union odbc_datum {
@@ -235,6 +258,8 @@ class datum {
         template<data_type Tag>
         typename detail::data_type_traits<Tag>::odbc_type
         get_impl() const noexcept;
+
+    friend class query;
 };
 
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
@@ -308,7 +333,7 @@ class connection {
 class query {
     public:
         query(detail::handle<detail::handle_type::connection>& conn)
-            : stmt_(conn), fields_(), ready_(false) {}
+            : stmt_(conn), fields_(), ready_(false), empty_(false) {}
 
         query(const query&) = delete;
 
@@ -320,7 +345,11 @@ class query {
 
         ~query() noexcept = default;
 
+        explicit operator bool() const { return ready_ && !empty_; }
+
         void execute(const string& statement);
+
+        void advance();
 
         template<class StrType>
         void execute(const StrType& statement)
@@ -330,12 +359,13 @@ class query {
 
         const std::vector<field>& fields() const;
 
-        datum get(std::size_t field) const;
+        datum get(std::size_t field);
 
     private:
         detail::handle<detail::handle_type::statement> stmt_;
         std::vector<field> fields_;
         bool ready_;
+        bool empty_;
 
         void update_fields();
 };
@@ -351,7 +381,9 @@ inline connection::env_initializer::env_initializer()
             reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0);
 
     if (!SQL_SUCCEEDED(ret))
-        throw std::runtime_error("Failed to set environment attributes.");
+        throw std::runtime_error(
+                std::string("Failed to set environment attributes.")
+                + " : " + shared_env_.error_message());
 }
 
 inline const std::vector<field>& query::fields() const
@@ -370,6 +402,47 @@ inline string make_string(const char* str) noexcept
 inline string make_string(const std::string& str)
 {
     return string(begin(str), end(str));
+}
+
+namespace detail {
+
+template<handle_type HType>
+std::string handle<HType>::error_message() noexcept
+{
+    static const std::size_t msg_max_len = 256;
+
+    char msg[msg_max_len];
+    char code[6];
+
+    std::string err_msg;
+
+    SQLSMALLINT rec_no = 1;
+    while (true) {
+        SQLINTEGER native_error;
+        SQLSMALLINT ret_len;
+        auto ret = SQLGetDiagRec(handle_traits<HType>::native_tag, h_, rec_no,
+                reinterpret_cast<SQLCHAR*>(&code[0]), &native_error,
+                reinterpret_cast<SQLCHAR*>(&msg[0]), msg_max_len, &ret_len);
+
+        if (!SQL_SUCCEEDED(ret))
+            return err_msg;
+
+        if (rec_no != 1)
+            err_msg += " | ";
+
+        err_msg += code;
+        err_msg += ": ";
+        err_msg += msg;
+        /* g++ broken! no to_string wtf
+        err_msg += " (native code: ";
+        err_msg += std::to_string(native_error);
+        err_msg += ")";
+        */
+
+        ++rec_no;
+    }
+}
+
 }
 
 }

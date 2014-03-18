@@ -17,11 +17,35 @@ void query::execute(const string& statement)
             const_cast<string::value_type*>(statement.c_str()), SQL_NTS);
 
     if (!SQL_SUCCEEDED(ret))
-        throw std::runtime_error("Statement execution failed!");
+        throw std::runtime_error(
+                std::string("Statement execution failed!")
+                + " : " + stmt_.error_message());
 
     update_fields();
 
+    ret = SQLFetch(stmt_);
+    if (ret == SQL_NO_DATA)
+        empty_ = true;
+    else if (!SQL_SUCCEEDED(ret))
+        throw std::runtime_error(
+                std::string("Failed to retrieve first row!")
+                + " : " + stmt_.error_message());
+
     ready_ = true;
+}
+
+void query::advance()
+{
+    if (!ready_)
+        throw std::runtime_error("No executed statement!");
+
+    auto ret = SQLFetch(stmt_);
+    if (ret == SQL_NO_DATA)
+        empty_ = true;
+    else if (!SQL_SUCCEEDED(ret))
+        throw std::runtime_error(
+                std::string("Failed to retrieve next row!")
+                + " : " + stmt_.error_message());
 }
 
 void query::update_fields()
@@ -31,7 +55,9 @@ void query::update_fields()
     SQLSMALLINT n_fields;
     auto ret = SQLNumResultCols(stmt_, &n_fields);
     if (!SQL_SUCCEEDED(ret))
-        throw std::runtime_error("Unable to get field count!");
+        throw std::runtime_error(
+                std::string("Unable to get field count!")
+                + " : " + stmt_.error_message());
 
     std::vector<field> new_fields;
     new_fields.reserve(n_fields);
@@ -43,7 +69,9 @@ void query::update_fields()
         auto ret = SQLDescribeCol(stmt_, i, name_buf, max_len,
                 &name_len, &odbc_type, &col_size, &decimal_digits, &nullable);
         if (!SQL_SUCCEEDED(ret))
-            throw std::runtime_error("Unable to get field metadata!");
+            throw std::runtime_error(
+                    std::string("Unable to get field metadata!")
+                    + " : " + stmt_.error_message());
 
         new_fields.push_back({
                 std::string(reinterpret_cast<char*>(&name_buf[0])),
@@ -56,6 +84,33 @@ void query::update_fields()
     }
 
     fields_ = std::move(new_fields);
+}
+
+datum query::get(std::size_t field)
+{
+    if (!ready_)
+        throw std::runtime_error("No executed statement!");
+
+    if (empty_)
+        throw std::runtime_error("No data returned!");
+
+    datum result(fields_[field].type);
+
+    SQLLEN result_length;
+    if (detail::is_pointer_type(result.type_)) {
+    } else {
+        auto res = SQLGetData(stmt_, field,
+                detail::odbc_c_tag_from_type(result.type_),
+                &result.datum_, 0, &result_length);
+        if (!SQL_SUCCEEDED(res))
+            throw std::runtime_error(
+                    std::string("Unable to retrieve data!")
+                    + " : " + stmt_.error_message());
+        if (result_length == SQL_NULL_DATA)
+            result.null_ = true;
+    }
+
+    return result;
 }
 
 bool connection::connect(const string& conn_str, bool prompt)

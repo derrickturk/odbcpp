@@ -15,9 +15,13 @@ int main()
     auto q = conn.make_query();
     q.execute("select * from dbo.snapshot_merge_WellMaster");
 
-    auto&& fs = q.fields();
-    for (const auto& f: fs) {
-        std::cout << "Field: " << f.name << '\n'
-            << "Type: " << type_name(f.type) << '\n';
+    for (std::size_t i = 0; i < q.fields().size(); ++i) {
+        std::cout << "Field " << i << ": " << q.fields()[i].name << '\n';
+        std::cout << "Type: " << type_name(q.fields()[i].type) << '\n';
+
+        auto&& d = q.get(i);
+
+        std::cout << "Got datum { type: " << type_name(d.type()) << ","
+            << (d ? " not " : " ") << "null }\n";
     }
 }
