@@ -51,7 +51,7 @@ void query::update_fields()
                 col_size,
                 static_cast<std::size_t>(decimal_digits),
                 nullable != SQL_NO_NULLS,
-                static_cast<std::size_t>(name_len) < max_len - 1
+                static_cast<std::size_t>(name_len) > max_len - 1
         });
     }
 
