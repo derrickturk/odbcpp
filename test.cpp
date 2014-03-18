@@ -9,8 +9,10 @@ int main()
 {
     using namespace odbcpp;
 
-    connection conn("test dsn");
+    connection conn("DRIVER=sql server;SERVER=VM-TXSQLDEV02\\BBE;Trusted Connection=Yes;Database=DSS_SFS;");
 
     auto q = conn.make_query();
-    q.execute("select * from test");
+    q.execute("select * from dbo.snapshot_merge_WellMaster");
+
+    auto f = q.fields();
 }
