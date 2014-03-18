@@ -175,15 +175,17 @@ class datum {
     public:
         datum(data_type type, void* data);
 
+        data_type type() const { return type_; }
+
         operator bool() const { return !null_; }
 
         template<data_type Tag>
         typename detail::data_type_traits<Tag>::odbc_type get() const
         {
-            if (type != Tag)
+            if (type_ != Tag)
                 throw std::invalid_argument("Invalid type for access.");
 
-            return nullptr;
+            return get_impl<Tag>();
         }
 
     private:
@@ -194,7 +196,22 @@ class datum {
             FOR_EACH_DATA_TYPE(UNION_FIELD_DEF)
 #undef UNION_FIELD_DEF
         } datum_;
+
+        template<data_type Tag>
+        typename detail::data_type_traits<Tag>::odbc_type
+        get_impl() const noexcept
 };
+
+#define SPECIALIZE_ACCESSOR(tag, type) \
+template<> \
+type datum::get_impl<tag>() const noexcept \
+{ \
+    return datum_.tag; \
+}
+
+FOR_EACH_DATA_TYPE(SPECIALIZE_ACCESSOR)
+
+#undef SPECIALIZE_ACCESSOR
 
 #undef FOR_EACH_DATA_TYPE
 
