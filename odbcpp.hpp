@@ -124,60 +124,54 @@ using string = std::basic_string<SQLCHAR>;
 inline string make_string(const char* str) noexcept;
 inline string make_string(const std::string& str);
 
+#define FOR_EACH_DATA_TYPE(mac) \
+    mac(character, SQLCHAR*)\
+    mac(wide_character, SQLWCHAR*)\
+    mac(short_integer, SQLSMALLINT)\
+    mac(unsigned_short_integer, SQLUSMALLINT)\
+    mac(single_float, SQLREAL)\
+    mac(double_float, SQLDOUBLE)\
+    mac(bit, SQLCHAR)\
+    mac(byte, SQLSCHAR)\
+    mac(unsigned_byte, SQLCHAR)\
+    mac(long_integer, SQLBIGINT)\
+    mac(unsigned_long_integer, SQLUBIGINT)\
+    mac(binary, SQLCHAR*)\
+    mac(bookmark, BOOKMARK)\
+    mac(var_bookmark, SQLCHAR*)\
+    mac(date, SQL_DATE_STRUCT)\
+    mac(time, SQL_TIME_STRUCT)\
+    mac(timestamp, SQL_TIMESTAMP_STRUCT)\
+    mac(numeric, SQL_NUMERIC_STRUCT)\
+    mac(guid, SQLGUID)\
+    mac(interval, SQL_INTERVAL_STRUCT)
+
 enum class data_type {
-    character,
-    wide_character,
-    short_integer,
-    unsigned_short_integer,
-    integer,
-    unsigned_integer,
-    single_float,
-    double_float,
-    bit,
-    byte,
-    unsigned_byte,
-    long_integer,
-    unsigned_long_integer,
-    binary,
-    bookmark,
-    var_bookmark,
-    date,
-    time,
-    timestamp,
-    numeric,
-    guid,
-    interval
+#define ENUMERATE_TAGS(tag, type) tag,
+    FOR_EACH_DATA_TYPE(ENUMERATE_TAGS)
+#undef ENUMERATE_TAGS
 };
 
 class datum {
     public:
         datum(data_type type, void* data);
 
+        operator bool() const { return !null_; }
+
+        template<data_type Tag>
+        auto get() -> void;
+
     private:
         data_type type_;
+        bool null_;
         union odbc_datum {
-            SQLCHAR* character;
-            SQLWCHAR* wide_character;
-            SQLSMALLINT short_integer;
-            SQLUSMALLINT unsigned_short_integer;
-            SQLREAL single_float;
-            SQLDOUBLE double_float;
-            SQLCHAR bit;
-            SQLSCHAR byte;
-            SQLCHAR unsigned_byte;
-            SQLBIGINT long_integer;
-            SQLUBIGINT unsigned_long_integer;
-            SQLCHAR* binary;
-            BOOKMARK bookmark;
-            SQLCHAR* var_bookmark;
-            SQL_DATE_STRUCT date;
-            SQL_TIME_STRUCT time;
-            SQL_TIMESTAMP_STRUCT timestamp;
-            SQL_NUMERIC_STRUCT numeric;
-            SQLGUID guid;
-            SQL_INTERVAL_STRUCT interval;
+#define UNION_FIELD_DEF(tag, type) type tag;
+            FOR_EACH_DATA_TYPE(UNION_FIELD_DEF)
+#undef UNION_FIELD_DEF
         } datum_;
 };
+
+#undef FOR_EACH_DATA_TYPE
 
 class query;
 
