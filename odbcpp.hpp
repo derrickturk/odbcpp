@@ -62,7 +62,7 @@ class handle {
 
         template<class C=context_type,
             typename std::enable_if<
-                std::is_same<C, void>::value,
+                std::is_void<C>::value,
             int>::type = 0>
         handle()
         {
@@ -75,7 +75,7 @@ class handle {
 
         template<class C=context_type>
         handle(const typename std::enable_if<
-                !std::is_same<C, void>::value,
+                !std::is_void<C>::value,
                 C>::type& context)
         {
             auto ret = SQLAllocHandle(handle_traits<HType>::native_tag,
@@ -159,7 +159,7 @@ struct data_type_traits;
 
 #define SPECIALIZE_TRAITS(tag, type) \
 template<> \
-struct data_type_traits<tag> { \
+struct data_type_traits<data_type::tag> { \
     using odbc_type = type; \
     static const bool is_pointer = std::is_pointer<odbc_type>::value; \
     static const std::size_t size = sizeof(odbc_type); \
@@ -199,12 +199,12 @@ class datum {
 
         template<data_type Tag>
         typename detail::data_type_traits<Tag>::odbc_type
-        get_impl() const noexcept
+        get_impl() const noexcept;
 };
 
 #define SPECIALIZE_ACCESSOR(tag, type) \
 template<> \
-type datum::get_impl<tag>() const noexcept \
+inline type datum::get_impl<data_type::tag>() const noexcept \
 { \
     return datum_.tag; \
 }
