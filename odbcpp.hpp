@@ -125,43 +125,10 @@ using string = std::basic_string<SQLCHAR>;
 inline string make_string(const char* str) noexcept;
 inline string make_string(const std::string& str);
 
-#define FOR_EACH_DATA_TYPE(mac) \
-    mac(character, SQLCHAR*, SQL_C_CHAR) \
-    mac(wide_character, SQLWCHAR*, SQL_C_WCHAR) \
-    mac(short_integer, SQLSMALLINT, SQL_C_SSHORT) \
-    mac(unsigned_short_integer, SQLUSMALLINT, SQL_C_USHORT) \
-    mac(single_float, SQLREAL, SQL_C_FLOAT) \
-    mac(double_float, SQLDOUBLE, SQL_C_DOUBLE) \
-    mac(bit, SQLCHAR, SQL_C_BIT) \
-    mac(byte, SQLSCHAR, SQL_C_STINYINT) \
-    mac(unsigned_byte, SQLCHAR, SQL_C_UTINYINT) \
-    mac(long_integer, SQLBIGINT, SQL_C_SBIGINT) \
-    mac(unsigned_long_integer, SQLUBIGINT, SQL_C_UBIGINT) \
-    mac(binary, SQLCHAR*, SQL_C_BINARY) \
-    mac(bookmark, BOOKMARK, SQL_C_BOOKMARK) \
-    mac(date, SQL_DATE_STRUCT, SQL_C_TYPE_DATE) \
-    mac(time, SQL_TIME_STRUCT, SQL_C_TYPE_TIME) \
-    mac(timestamp, SQL_TIMESTAMP_STRUCT, SQL_C_TYPE_TIMESTAMP) \
-    mac(numeric, SQL_NUMERIC_STRUCT, SQL_C_NUMERIC) \
-    mac(guid, SQLGUID, SQL_C_GUID) \
-    mac(interval_year, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_YEAR) \
-    mac(interval_month, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_MONTH) \
-    mac(interval_day, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_DAY) \
-    mac(interval_hour, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_HOUR) \
-    mac(interval_minute, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_MINUTE) \
-    mac(interval_second, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_SECOND) \
-    mac(interval_year_to_month, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_YEAR_TO_MONTH) \
-    mac(interval_day_to_hour, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_DAY_TO_HOUR) \
-    mac(interval_day_to_minute, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_DAY_TO_MINUTE) \
-    mac(interval_day_to_second, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_DAY_TO_SECOND) \
-    mac(interval_hour_to_minute, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_HOUR_TO_MINUTE) \
-    mac(interval_hour_to_second, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_HOUR_TO_SECOND) \
-    mac(interval_minute_to_second, SQL_INTERVAL_STRUCT, SQL_C_INTERVAL_MINUTE_TO_SECOND)
-
 enum class data_type {
-#define ENUMERATE_TAGS(tag, type, odbc_tag) tag,
-    FOR_EACH_DATA_TYPE(ENUMERATE_TAGS)
-#undef ENUMERATE_TAGS
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) tag,
+#include "data_types.def"
+#undef FOR_EACH_DATA_TYPE
 };
 
 namespace detail {
@@ -169,46 +136,62 @@ namespace detail {
 template<data_type Tag>
 struct data_type_traits;
 
-#define SPECIALIZE_TRAITS(tag, type, _odbc_tag) \
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
 template<> \
 struct data_type_traits<data_type::tag> { \
     using odbc_type = type; \
     static const bool is_pointer = std::is_pointer<odbc_type>::value; \
     static const std::size_t size = sizeof(odbc_type); \
-    static const SQLSMALLINT odbc_tag = _odbc_tag; \
+    static const SQLSMALLINT odbc_sql_tag = sql_tag; \
+    static const SQLSMALLINT odbc_c_tag = c_tag; \
 };
 
-FOR_EACH_DATA_TYPE(SPECIALIZE_TRAITS)
+#include "data_types.def"
 
-#undef SPECIALIZE_TRAITS
+#undef FOR_EACH_DATA_TYPE
 
-inline data_type type_from_odbc_tag(SQLSMALLINT odbc_tag)
+inline data_type type_from_odbc_sql_tag(SQLSMALLINT odbc_sql_tag)
 {
-    switch (odbc_tag) {
-#define CASE_REVERSE(tag, type, _odbc_tag) \
-        case _odbc_tag : return data_type::tag;
+    switch (odbc_sql_tag) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
+        case sql_tag : return data_type::tag;
 
-        FOR_EACH_DATA_TYPE(CASE_REVERSE)
+#include "data_types.def"
 
-#undef CASE_REVERSE
+#undef FOR_EACH_DATA_TYPE
     }
 
-    throw std::invalid_argument("Bad ODBC type tag!");
+    throw std::invalid_argument("Bad ODBC SQL type tag!");
 }
 
-inline SQLSMALLINT odbc_tag_from_type(data_type type)
+inline SQLSMALLINT odbc_c_tag_from_type(data_type type)
 {
     switch (type) {
-#define CASE_FORWARD(tag, type, odbc_tag) \
-        case data_type::tag : return odbc_tag;
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
+        case data_type::tag : return c_tag;
 
-        FOR_EACH_DATA_TYPE(CASE_FORWARD)
+#include "data_types.def"
 
-#undef CASE_FORWARD
+#undef FOR_EACH_DATA_TYPE
     }
 
     throw std::invalid_argument("Bad type tag!");
 }
+
+inline SQLSMALLINT odbc_sql_tag_from_type(data_type type)
+{
+    switch (type) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
+        case data_type::tag : return sql_tag;
+
+#include "data_types.def"
+
+#undef FOR_EACH_DATA_TYPE
+    }
+
+    throw std::invalid_argument("Bad type tag!");
+}
+
 
 }
 
@@ -233,9 +216,9 @@ class datum {
         data_type type_;
         bool null_;
         union odbc_datum {
-#define UNION_FIELD_DEF(tag, type, odbc_tag) type tag;
-            FOR_EACH_DATA_TYPE(UNION_FIELD_DEF)
-#undef UNION_FIELD_DEF
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) type tag;
+#include "data_types.def"
+#undef FOR_EACH_DATA_TYPE
         } datum_;
 
         template<data_type Tag>
@@ -243,16 +226,14 @@ class datum {
         get_impl() const noexcept;
 };
 
-#define SPECIALIZE_ACCESSOR(tag, type, odbc_tag) \
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
 template<> \
 inline type datum::get_impl<data_type::tag>() const noexcept \
 { \
     return datum_.tag; \
 }
 
-FOR_EACH_DATA_TYPE(SPECIALIZE_ACCESSOR)
-
-#undef SPECIALIZE_ACCESSOR
+#include "data_types.def"
 
 #undef FOR_EACH_DATA_TYPE
 

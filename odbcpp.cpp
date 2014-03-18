@@ -28,8 +28,6 @@ void query::update_fields()
 {
     static const std::size_t max_len = 256;
 
-    assert(ready_);
-
     SQLSMALLINT n_fields;
     auto ret = SQLNumResultCols(stmt_, &n_fields);
     if (!SQL_SUCCEEDED(ret))
@@ -49,7 +47,7 @@ void query::update_fields()
 
         new_fields.push_back({
                 std::string(reinterpret_cast<char*>(&name_buf[0])),
-                detail::type_from_odbc_tag(odbc_type),
+                detail::type_from_odbc_sql_tag(odbc_type),
                 col_size,
                 static_cast<std::size_t>(decimal_digits),
                 nullable != SQL_NO_NULLS,
