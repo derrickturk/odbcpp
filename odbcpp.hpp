@@ -152,6 +152,25 @@ enum class data_type {
 #undef ENUMERATE_TAGS
 };
 
+namespace detail {
+
+template<data_type Tag>
+struct data_type_traits;
+
+#define SPECIALIZE_TRAITS(tag, type) \
+template<> \
+struct data_type_traits<tag> { \
+    using odbc_type = type; \
+    static const bool is_pointer = std::is_pointer<odbc_type>::value; \
+    static const std::size_t size = sizeof(odbc_type); \
+};
+
+FOR_EACH_DATA_TYPE(SPECIALIZE_TRAITS)
+
+#undef SPECIALIZE_TRAITS
+
+}
+
 class datum {
     public:
         datum(data_type type, void* data);
@@ -159,7 +178,13 @@ class datum {
         operator bool() const { return !null_; }
 
         template<data_type Tag>
-        auto get() -> void;
+        typename detail::data_type_traits<Tag>::odbc_type get() const
+        {
+            if (type != Tag)
+                throw std::invalid_argument("Invalid type for access.");
+
+            return nullptr;
+        }
 
     private:
         data_type type_;
