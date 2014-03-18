@@ -133,6 +133,13 @@ enum class data_type {
 
 namespace detail {
 
+// redundant, but GCC freaks out
+constexpr const char* const type_names[] = {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) #tag,
+#include "data_types.def"
+#undef FOR_EACH_DATA_TYPE
+};
+
 template<data_type Tag>
 struct data_type_traits;
 
@@ -192,7 +199,11 @@ inline SQLSMALLINT odbc_sql_tag_from_type(data_type type)
     throw std::invalid_argument("Bad type tag!");
 }
 
+}
 
+constexpr const char* type_name(data_type type) noexcept
+{
+    return detail::type_names[static_cast<int>(type)];
 }
 
 class datum {
