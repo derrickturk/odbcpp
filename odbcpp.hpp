@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+#include "windows.h"
 #include "sql.h"
 #include "sqlext.h"
 
@@ -131,7 +132,8 @@ inline string make_string(const std::string& str);
 
 enum class data_type {
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) tag,
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 #undef FOR_EACH_DATA_TYPE
 };
 
@@ -140,7 +142,8 @@ namespace detail {
 // redundant, but GCC freaks out
 constexpr const char* const type_names[] = {
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) #tag,
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 #undef FOR_EACH_DATA_TYPE
 };
 
@@ -157,7 +160,8 @@ struct data_type_traits<data_type::tag> { \
     static const SQLSMALLINT odbc_c_tag = c_tag; \
 };
 
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 
 #undef FOR_EACH_DATA_TYPE
 
@@ -167,7 +171,8 @@ inline data_type type_from_odbc_sql_tag(SQLSMALLINT odbc_sql_tag)
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
         case sql_tag : return data_type::tag;
 
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 
 #undef FOR_EACH_DATA_TYPE
     }
@@ -181,7 +186,8 @@ inline SQLSMALLINT odbc_c_tag_from_type(data_type type)
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
         case data_type::tag : return c_tag;
 
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 
 #undef FOR_EACH_DATA_TYPE
     }
@@ -195,7 +201,8 @@ inline SQLSMALLINT odbc_sql_tag_from_type(data_type type)
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
         case data_type::tag : return sql_tag;
 
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 
 #undef FOR_EACH_DATA_TYPE
     }
@@ -209,7 +216,8 @@ inline bool is_pointer_type(data_type type)
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
         case data_type::tag : return std::is_pointer<type>::value;
 
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 
 #undef FOR_EACH_DATA_TYPE
     }
@@ -223,7 +231,8 @@ inline std::size_t element_size(data_type type)
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
         case data_type::tag : return sizeof(type);
 
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 
 #undef FOR_EACH_DATA_TYPE
     }
@@ -264,10 +273,11 @@ class datum {
 
         data_type type_;
         bool null_;
-        std::unique_ptr<unsigned char> ptr_;
+        std::unique_ptr<unsigned char[]> ptr_;
         union odbc_datum {
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) type tag;
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 #undef FOR_EACH_DATA_TYPE
         } datum_;
 
@@ -285,7 +295,8 @@ inline type datum::get_impl<data_type::tag>() const noexcept \
     return datum_.tag; \
 }
 
-#include "data_types.def"
+#include "nonpointer_types.def"
+#include "pointer_types.def"
 
 #undef FOR_EACH_DATA_TYPE
 

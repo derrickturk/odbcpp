@@ -101,10 +101,10 @@ datum query::get(std::size_t field)
 
     SQLLEN result_length;
     if (!detail::is_pointer_type(result.type_)) {
-        auto res = SQLGetData(stmt_, field + 1, // odbc uses 1-based indexing for columns
+        auto ret = SQLGetData(stmt_, field + 1, // odbc uses 1-based indexing for columns
                 detail::odbc_c_tag_from_type(result.type_),
                 &result.datum_, sizeof(result.datum_), &result_length);
-        if (!SQL_SUCCEEDED(res))
+        if (!SQL_SUCCEEDED(ret))
             throw std::runtime_error(
                     std::string("Unable to retrieve data!")
                     + " : " + stmt_.error_message());
@@ -121,23 +121,23 @@ datum query::get(std::size_t field)
                     new unsigned char[alloc_total + next_alloc]);
 
             if (result.ptr_)
-                std::copy(res.ptr_.get(), res.ptr_.get() + alloc_total,
+                std::copy(result.ptr_.get(), result.ptr_.get() + alloc_total,
                         buf.get());
 
-            result.ptr_ = buf;
+            result.ptr_ = std::move(buf);
 
             // you get back a null terminator for each chunk---
-            unsigned char this_request_ptr = buf.get()
-                + alloc_total ? alloc_total - 1 : 0;
-            SQLLEN this_request_len = next_alloc + alloc_total ? 1 : 0;
+            unsigned char* this_request_ptr = result.ptr_.get()
+                + (alloc_total ? alloc_total - 1 : 0);
+            SQLLEN this_request_len = next_alloc + (alloc_total ? 1 : 0);
             alloc_total += next_alloc;
             // ---which is horrible and stupid
-            auto res = SQLGetData(stmt_, field + 1,
+            auto ret = SQLGetData(stmt_, field + 1,
                     detail::odbc_c_tag_from_type(result.type_),
-                    this_request_ptr,
+                    static_cast<void*>(this_request_ptr),
                     this_request_len,
                     &result_length);
-            if (!SQL_SUCCEEDED(res))
+            if (!SQL_SUCCEEDED(ret))
                 throw std::runtime_error(
                         std::string("Unable to retrieve data!")
                         + " : " + stmt_.error_message());
@@ -150,13 +150,15 @@ datum query::get(std::size_t field)
             if (result_length == SQL_NO_TOTAL) {
                 next_alloc = buf_chunk;
             } else if (result_length > this_request_len) {
-                next_alloc = result_length - (this_request_len) + 1
+                next_alloc = result_length - (this_request_len) + 1;
             } else {
                 switch (result.type_) {
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
-                    case data_type::tag : result.datum_.tag = static_cast<type>result.ptr_.get(); \
-                                          break;
-#include "data_types.def"
+                    case data_type::tag : \
+                        result.datum_.tag = \
+                            reinterpret_cast<type>(result.ptr_.get()); \
+                        break;
+#include "pointer_types.def"
 
 #undef FOR_EACH_DATA_TYPE
 
