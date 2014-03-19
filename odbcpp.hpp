@@ -156,11 +156,19 @@ struct data_type_traits<data_type::tag> { \
     using odbc_type = _type; \
     static const bool is_pointer = std::is_pointer<odbc_type>::value; \
     static const bool is_scalar = std::is_scalar<odbc_type>::value; \
-    static const bool is_narrow_char = std::is_same< \
-        std::conditional<std::is_integral<odbc_type>::value, \
-            std::make_unsigned<std::remove_pointer<odbc_type>::type>::type, \
-            void>, \
-        unsigned char>::value;\
+    static const bool is_narrow_char = \
+        std::is_same< \
+            std::remove_pointer<odbc_type>::type, \
+            char \
+        >::value || \
+        std::is_same< \
+            std::remove_pointer<odbc_type>::type, \
+            signed char \
+        >::value || \
+        std::is_same< \
+            std::remove_pointer<odbc_type>::type, \
+            unsigned char \
+        >::value; \
     static const bool is_wide_char = std::is_same< \
         std::remove_pointer<odbc_type>::type, \
         wchar_t>::value; \
