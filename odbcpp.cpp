@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <cassert>
+#include <algorithm>
 
 namespace odbcpp {
 
@@ -88,6 +89,8 @@ void query::update_fields()
 
 datum query::get(std::size_t field)
 {
+    static const std::size_t buf_chunk = 256;
+
     if (!ready_)
         throw std::runtime_error("No executed statement!");
 
@@ -97,35 +100,72 @@ datum query::get(std::size_t field)
     datum result(fields_[field].type);
 
     SQLLEN result_length;
-    auto res = SQLGetData(stmt_, field + 1, // odbc uses 1-based indexing for columns
-            detail::odbc_c_tag_from_type(result.type_),
-            &result.datum_, 0, &result_length);
-    if (!SQL_SUCCEEDED(res))
-        throw std::runtime_error(
-                std::string("Unable to retrieve data!")
-                + " : " + stmt_.error_message());
-
-    if (result_length == SQL_NULL_DATA) {
-        result.null_ = true;
-        return result;
-    }
-
-    if (detail::is_pointer_type(result.type_)) {
-        if (result_length == SQL_NO_TOTAL)
-            throw std::runtime_error("Unable to get data length!");
-
-        // leave room for null terminator
-        result.ptr_ = std::unique_ptr<unsigned char>
-            { new unsigned char[result_length + 1] };
-        auto res = SQLGetData(stmt_, field + 1,
+    if (!detail::is_pointer_type(result.type_)) {
+        auto res = SQLGetData(stmt_, field + 1, // odbc uses 1-based indexing for columns
                 detail::odbc_c_tag_from_type(result.type_),
-                result.ptr_.get(), result_length + 1, &result_length);
+                &result.datum_, sizeof(result.datum_), &result_length);
         if (!SQL_SUCCEEDED(res))
             throw std::runtime_error(
                     std::string("Unable to retrieve data!")
                     + " : " + stmt_.error_message());
 
-        result.datum_.binary = result.ptr_.get();
+        if (result_length == SQL_NULL_DATA) {
+            result.null_ = true;
+        }
+
+        return result;
+    } else {
+        std::size_t next_alloc = buf_chunk, alloc_total = 0;
+        do {
+            std::unique_ptr<unsigned char[]> buf(
+                    new unsigned char[alloc_total + next_alloc]);
+
+            if (result.ptr_)
+                std::copy(res.ptr_.get(), res.ptr_.get() + alloc_total,
+                        buf.get());
+
+            result.ptr_ = buf;
+
+            // you get back a null terminator for each chunk---
+            unsigned char this_request_ptr = buf.get()
+                + alloc_total ? alloc_total - 1 : 0;
+            SQLLEN this_request_len = next_alloc + alloc_total ? 1 : 0;
+            alloc_total += next_alloc;
+            // ---which is horrible and stupid
+            auto res = SQLGetData(stmt_, field + 1,
+                    detail::odbc_c_tag_from_type(result.type_),
+                    this_request_ptr,
+                    this_request_len,
+                    &result_length);
+            if (!SQL_SUCCEEDED(res))
+                throw std::runtime_error(
+                        std::string("Unable to retrieve data!")
+                        + " : " + stmt_.error_message());
+
+            if (result_length == SQL_NULL_DATA) {
+                result.null_ = true;
+                return result;
+            }
+
+            if (result_length == SQL_NO_TOTAL) {
+                next_alloc = buf_chunk;
+            } else if (result_length > this_request_len) {
+                next_alloc = result_length - (this_request_len) + 1
+            } else {
+                switch (result.type_) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
+                    case data_type::tag : result.datum_.tag = static_cast<type>result.ptr_.get(); \
+                                          break;
+#include "data_types.def"
+
+#undef FOR_EACH_DATA_TYPE
+
+                    default: throw std::runtime_error("Invalid data type!");
+                }
+
+                return result;
+            }
+        } while (true);
     }
 
     return result;

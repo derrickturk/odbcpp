@@ -6,7 +6,6 @@
 #include <memory>
 #include <string>
 
-#include "windows.h"
 #include "sql.h"
 #include "sqlext.h"
 
