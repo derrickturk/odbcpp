@@ -14,6 +14,9 @@ std::ostream& operator<<(std::ostream& os, const odbcpp::datum& d)
 {
     using namespace odbcpp::detail;
 
+    if (!d)
+        return os << "<NULL>";
+
     if (is_narrow_char_type(d.type())) {
         switch (d.type()) {
             union {
@@ -111,6 +114,9 @@ walk_wide:
 std::wostream& operator<<(std::wostream& os, const odbcpp::datum& d)
 {
     using namespace odbcpp::detail;
+
+    if (!d)
+        return os << "<NULL>";
 
     if (is_wide_char_type(d.type())) {
         switch (d.type()) {
