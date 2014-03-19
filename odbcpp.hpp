@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include <memory>
 #include <string>
 
 #include "windows.h"
@@ -217,6 +218,21 @@ inline bool is_pointer_type(data_type type)
     throw std::invalid_argument("Bad type tag!");
 }
 
+inline std::size_t element_size(data_type type)
+{
+    switch (type) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
+        case data_type::tag : return sizeof(type);
+
+#include "data_types.def"
+
+#undef FOR_EACH_DATA_TYPE
+    }
+
+    throw std::invalid_argument("Bad type tag!");
+}
+
+
 }
 
 constexpr const char* type_name(data_type type) noexcept
@@ -226,9 +242,9 @@ constexpr const char* type_name(data_type type) noexcept
 
 class datum {
     public:
-        datum(datum&& other) = default;
+        datum(datum&&) = default;
 
-        datum& operator=(datum&& other) = default;
+        datum& operator=(datum&&) = default;
 
         data_type type() const { return type_; }
 
@@ -245,10 +261,11 @@ class datum {
 
     private:
         datum(data_type type)
-            : type_(type), null_(false), datum_() {}
+            : type_(type), null_(false), ptr_(nullptr), datum_() {}
 
         data_type type_;
         bool null_;
+        std::unique_ptr<unsigned char> ptr_;
         union odbc_datum {
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) type tag;
 #include "data_types.def"
@@ -298,11 +315,11 @@ class connection {
 
         connection(const connection&) = delete;
 
-        connection(connection&& other) noexcept = default;
+        connection(connection&&) noexcept = default;
 
         connection& operator=(const connection&) = delete;
 
-        connection& operator=(connection&& other) noexcept = default;
+        connection& operator=(connection&&) noexcept = default;
 
         ~connection() noexcept { disconnect(); }
 

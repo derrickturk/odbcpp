@@ -97,17 +97,35 @@ datum query::get(std::size_t field)
     datum result(fields_[field].type);
 
     SQLLEN result_length;
+    auto res = SQLGetData(stmt_, field + 1, // odbc uses 1-based indexing for columns
+            detail::odbc_c_tag_from_type(result.type_),
+            &result.datum_, 0, &result_length);
+    if (!SQL_SUCCEEDED(res))
+        throw std::runtime_error(
+                std::string("Unable to retrieve data!")
+                + " : " + stmt_.error_message());
+
+    if (result_length == SQL_NULL_DATA) {
+        result.null_ = true;
+        return result;
+    }
+
     if (detail::is_pointer_type(result.type_)) {
-    } else {
-        auto res = SQLGetData(stmt_, field,
+        if (result_length == SQL_NO_TOTAL)
+            throw std::runtime_error("Unable to get data length!");
+
+        // leave room for null terminator
+        result.ptr_ = std::unique_ptr<unsigned char>
+            { new unsigned char[result_length + 1] };
+        auto res = SQLGetData(stmt_, field + 1,
                 detail::odbc_c_tag_from_type(result.type_),
-                &result.datum_, 0, &result_length);
+                result.ptr_.get(), result_length + 1, &result_length);
         if (!SQL_SUCCEEDED(res))
             throw std::runtime_error(
                     std::string("Unable to retrieve data!")
                     + " : " + stmt_.error_message());
-        if (result_length == SQL_NULL_DATA)
-            result.null_ = true;
+
+        result.datum_.binary = result.ptr_.get();
     }
 
     return result;
