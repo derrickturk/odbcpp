@@ -31,11 +31,7 @@ int main()
             if (!d)
                 continue;
 
-            if (d.type() == data_type::varchar)
-                std::cout << "varchar: " << d.get<data_type::varchar>() << '\n';
-            else if (d.type() == data_type::wide_varchar)
-                std::wcout << "wide varchar: "
-                    << std::wstring(d.get<data_type::wide_varchar>()) << '\n';
+            std::wcout << d << '\n';
         }
 
         q.advance();
