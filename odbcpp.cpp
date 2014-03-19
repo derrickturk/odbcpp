@@ -161,5 +161,3 @@ const char* const handle_traits<handle_type::descriptor>::alloc_fail_msg =
 }
 
 }
-
-#include "sql.h"
