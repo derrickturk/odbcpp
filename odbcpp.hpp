@@ -150,12 +150,17 @@ constexpr const char* const type_names[] = {
 template<data_type Tag>
 struct data_type_traits;
 
-#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
+#define FOR_EACH_DATA_TYPE(tag, _type, c_tag, sql_tag) \
 template<> \
 struct data_type_traits<data_type::tag> { \
-    using odbc_type = type; \
+    using odbc_type = _type; \
     static const bool is_pointer = std::is_pointer<odbc_type>::value; \
     static const bool is_scalar = std::is_scalar<odbc_type>::value; \
+    static const bool is_narrow_char = std::is_same< \
+        std::conditional<std::is_integral<odbc_type>::value, \
+            std::make_unsigned<std::remove_pointer<odbc_type>::type>::type, \
+            void>, \
+        unsigned char>::value;\
     static const bool is_wide_char = std::is_same< \
         std::remove_pointer<odbc_type>::type, \
         wchar_t>::value; \
@@ -252,6 +257,22 @@ inline bool is_wide_char_type(data_type type)
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
         case data_type::tag : \
             return data_type_traits<data_type::tag>::is_wide_char;
+
+#include "nonpointer_types.def"
+#include "pointer_types.def"
+
+#undef FOR_EACH_DATA_TYPE
+    }
+
+    throw std::invalid_argument("Bad type tag!");
+}
+
+inline bool is_narrow_char_type(data_type type)
+{
+    switch (type) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
+        case data_type::tag : \
+            return data_type_traits<data_type::tag>::is_narrow_char;
 
 #include "nonpointer_types.def"
 #include "pointer_types.def"

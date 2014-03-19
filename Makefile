@@ -7,7 +7,7 @@ LINKOPTS=-lodbc32
 test.exe: test.cpp odbcpp.o odbcpp_streams.o
 	$(CXX) $(CXXOPTS) $(OPTOPTS) -o $@ $^ $(LINKOPTS) 
 
-%.o: %.cpp %.hpp data_types.def
+%.o: %.cpp %.hpp pointer_types.def nonpointer_types.def
 	$(CXX) $(CXXOPTS) $(OPTOPTS) -c -o $@ $<
 
 clean:
