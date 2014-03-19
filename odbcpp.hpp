@@ -155,6 +155,10 @@ template<> \
 struct data_type_traits<data_type::tag> { \
     using odbc_type = type; \
     static const bool is_pointer = std::is_pointer<odbc_type>::value; \
+    static const bool is_scalar = std::is_scalar<odbc_type>::value; \
+    static const bool is_wide_char = std::is_same< \
+        std::remove_pointer<odbc_type>::type, \
+        wchar_t>::value; \
     static const std::size_t size = sizeof(odbc_type); \
     static const SQLSMALLINT odbc_sql_tag = sql_tag; \
     static const SQLSMALLINT odbc_c_tag = c_tag; \
@@ -214,7 +218,40 @@ inline bool is_pointer_type(data_type type)
 {
     switch (type) {
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
-        case data_type::tag : return std::is_pointer<type>::value;
+        case data_type::tag : \
+            return data_type_traits<data_type::tag>::is_pointer;
+
+#include "nonpointer_types.def"
+#include "pointer_types.def"
+
+#undef FOR_EACH_DATA_TYPE
+    }
+
+    throw std::invalid_argument("Bad type tag!");
+}
+
+inline bool is_scalar_type(data_type type)
+{
+    switch (type) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
+        case data_type::tag : \
+            return data_type_traits<data_type::tag>::is_scalar;
+
+#include "nonpointer_types.def"
+#include "pointer_types.def"
+
+#undef FOR_EACH_DATA_TYPE
+    }
+
+    throw std::invalid_argument("Bad type tag!");
+}
+
+inline bool is_wide_char_type(data_type type)
+{
+    switch (type) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
+        case data_type::tag : \
+            return data_type_traits<data_type::tag>::is_wide_char;
 
 #include "nonpointer_types.def"
 #include "pointer_types.def"

@@ -16,7 +16,7 @@ int main()
     q.execute("select * from dbo.snapshot_merge_WellMaster");
 
     int i = 1;
-    while (q && i < 10) {
+    while (q) {
         std::cout << "Row " << i++ << '\n';
 
         for (std::size_t i = 0; i < q.fields().size(); ++i) {
