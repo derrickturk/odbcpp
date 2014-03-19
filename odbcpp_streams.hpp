@@ -25,18 +25,27 @@ std::ostream& operator<<(std::ostream& os, const odbcpp::datum& d)
 
             case data_type::character:
                 p = reinterpret_cast<char*>(d.get<data_type::character>());
+                return os << p;
+
             case data_type::varchar:
                 p = reinterpret_cast<char*>(d.get<data_type::varchar>());
+                return os << p;
+
             case data_type::long_varchar:
                 p = reinterpret_cast<char*>(d.get<data_type::long_varchar>());
                 return os << p;
 
             case data_type::binary:
                 up = d.get<data_type::binary>();
+                goto walk_binary;
+
             case data_type::varbinary:
                 up = d.get<data_type::varbinary>();
+                goto walk_binary;
+
             case data_type::long_varbinary:
                 up = d.get<data_type::long_varbinary>();
+walk_binary:
                 os << std::hex;
                 for (std::size_t i = 0; i < d.length(); ++i)
                     os << p[i];
@@ -54,10 +63,15 @@ std::ostream& operator<<(std::ostream& os, const odbcpp::datum& d)
 
             case data_type::wide_character:
                 p = d.get<data_type::wide_character>();
+                goto walk_wide;
+
             case data_type::wide_varchar:
                 p = d.get<data_type::wide_varchar>();
+                goto walk_wide;
+
             case data_type::long_wide_varchar:
                 p = d.get<data_type::long_wide_varchar>();
+walk_wide:
                 while (wchar_t c = *p++)
                     os << os.narrow(c, '?');
                 return os;
@@ -105,20 +119,30 @@ std::wostream& operator<<(std::wostream& os, const odbcpp::datum& d)
 
             case data_type::character:
                 p = reinterpret_cast<char*>(d.get<data_type::character>());
+                goto walk_narrow;
+
             case data_type::varchar:
                 p = reinterpret_cast<char*>(d.get<data_type::varchar>());
+                goto walk_narrow;
+
             case data_type::long_varchar:
                 p = reinterpret_cast<char*>(d.get<data_type::long_varchar>());
+walk_narrow:
                 while (char c = *p++)
                     os << os.widen(c);
                 return os;
 
             case data_type::binary:
                 up = d.get<data_type::binary>();
+                goto walk_binary;
+
             case data_type::varbinary:
                 up = d.get<data_type::varbinary>();
+                goto walk_binary;
+
             case data_type::long_varbinary:
                 up = d.get<data_type::long_varbinary>();
+walk_binary:
                 os << std::hex;
                 for (std::size_t i = 0; i < d.length(); ++i)
                     os << p[i];

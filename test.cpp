@@ -1,4 +1,5 @@
 #include "odbcpp.hpp"
+#include "odbcpp_streams.hpp"
 
 #include "sql.h"
 #include "sqlext.h"
