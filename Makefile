@@ -4,7 +4,7 @@ CXXOPTS=-std=c++11 -Wall -Wextra -Werror -pedantic -static-libgcc -static-libstd
 OPTOPTS=-g
 LINKOPTS=-lodbc32
 
-test.exe: test.cpp odbcpp.o odbcpp_streams.o
+test.exe: test.cpp odbcpp.o odbcpp_streams.hpp
 	$(CXX) $(CXXOPTS) $(OPTOPTS) -o $@ $^ $(LINKOPTS) 
 
 %.o: %.cpp %.hpp pointer_types.def nonpointer_types.def
