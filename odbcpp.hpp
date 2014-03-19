@@ -322,7 +322,7 @@ class datum {
 
         data_type type() const { return type_; }
 
-        operator bool() const { return !null_; }
+        explicit operator bool() const { return !null_; }
 
         std::size_t length() const
         {
