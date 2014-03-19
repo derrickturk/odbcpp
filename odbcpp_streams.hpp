@@ -4,6 +4,10 @@
 
 #include "odbcpp.hpp"
 
+#define DIRECT_OUTPUT_CASE(type, datum, str) \
+    case data_type::type: \
+        return str << datum.get<data_type::type>();
+
 namespace odbcpp {
 
 std::ostream& operator<<(std::ostream& os, const odbcpp::datum& d)
@@ -81,7 +85,27 @@ walk_wide:
         }
     }
 
-    return os;
+    if (is_scalar_type(d.type())) {
+        switch (d.type()) {
+            DIRECT_OUTPUT_CASE(short_integer, d, os)
+            DIRECT_OUTPUT_CASE(integer, d, os)
+            DIRECT_OUTPUT_CASE(long_integer, d, os)
+            DIRECT_OUTPUT_CASE(single_float, d, os)
+            DIRECT_OUTPUT_CASE(double_float, d, os)
+            DIRECT_OUTPUT_CASE(default_float, d, os)
+
+            default:
+                return os << "<" << type_name(d.type()) << ">";
+        }
+    }
+
+    if (is_struct_type(d.type()))
+        return os << "<" << type_name(d.type()) << ">";
+
+    if (is_pointer_type(d.type()))
+        throw std::runtime_error("Unknown pointer type!");
+
+    throw std::runtime_error("Unknown type!");
 }
 
 std::wostream& operator<<(std::wostream& os, const odbcpp::datum& d)
@@ -154,7 +178,27 @@ walk_binary:
         }
     }
 
-    return os;
+    if (is_scalar_type(d.type())) {
+        switch (d.type()) {
+            DIRECT_OUTPUT_CASE(short_integer, d, os)
+            DIRECT_OUTPUT_CASE(integer, d, os)
+            DIRECT_OUTPUT_CASE(long_integer, d, os)
+            DIRECT_OUTPUT_CASE(single_float, d, os)
+            DIRECT_OUTPUT_CASE(double_float, d, os)
+            DIRECT_OUTPUT_CASE(default_float, d, os)
+
+            default:
+                return os << "<" << type_name(d.type()) << ">";
+        }
+    }
+
+    if (is_struct_type(d.type()))
+        return os << "<" << type_name(d.type()) << ">";
+
+    if (is_pointer_type(d.type()))
+        throw std::runtime_error("Unknown pointer type!");
+
+    throw std::runtime_error("Unknown type!");
 }
 
 }

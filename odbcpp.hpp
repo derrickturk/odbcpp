@@ -156,6 +156,7 @@ struct data_type_traits<data_type::tag> { \
     using odbc_type = _type; \
     static const bool is_pointer = std::is_pointer<odbc_type>::value; \
     static const bool is_scalar = std::is_scalar<odbc_type>::value; \
+    static const bool is_struct = std::is_class<odbc_type>::value; \
     static const bool is_narrow_char = \
         std::is_same< \
             std::remove_pointer<odbc_type>::type, \
@@ -249,6 +250,22 @@ inline bool is_scalar_type(data_type type)
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
         case data_type::tag : \
             return data_type_traits<data_type::tag>::is_scalar;
+
+#include "nonpointer_types.def"
+#include "pointer_types.def"
+
+#undef FOR_EACH_DATA_TYPE
+    }
+
+    throw std::invalid_argument("Bad type tag!");
+}
+
+inline bool is_struct_type(data_type type)
+{
+    switch (type) {
+#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_type) \
+        case data_type::tag : \
+            return data_type_traits<data_type::tag>::is_struct;
 
 #include "nonpointer_types.def"
 #include "pointer_types.def"
