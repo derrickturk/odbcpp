@@ -160,7 +160,7 @@ datum query::get(std::size_t field)
                         result.len_ = \
                             (result_length \
                              + this_request_ptr - result.ptr_.get()) \
-                            / sizeof(std::remove_pointer<_type>::type);
+                            / sizeof(std::remove_pointer<_type>::type); \
                         break;
 #include "pointer_types.def"
 

@@ -51,11 +51,11 @@ std::wostream& operator<<(std::wostream& os, const odbcpp::datum& d)
                 return os << static_cast<bool>(d.get<data_type::bit>());
 
             case data_type::character:
-                p = d.get<data_type::character>();
+                p = reinterpret_cast<char*>(d.get<data_type::character>());
             case data_type::varchar:
-                p = d.get<data_type::varchar>();
+                p = reinterpret_cast<char*>(d.get<data_type::varchar>());
             case data_type::long_varchar:
-                p = d.get<data_type::long_varchar>();
+                p = reinterpret_cast<char*>(d.get<data_type::long_varchar>());
                 while (char c = *p++)
                     os << os.widen(c);
                 return os;
