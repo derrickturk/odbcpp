@@ -353,7 +353,10 @@ class datum {
         typename detail::data_type_traits<Tag>::odbc_type get() const
         {
             if (type_ != Tag)
-                throw std::invalid_argument("Invalid type for access.");
+                throw std::runtime_error("Invalid type for access.");
+
+            if (null_)
+                throw std::runtime_error("Attempted access of NULL datum.");
 
             return get_impl<Tag>();
         }
