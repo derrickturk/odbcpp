@@ -153,10 +153,14 @@ datum query::get(std::size_t field)
                 next_alloc = result_length - (this_request_len) + 1;
             } else {
                 switch (result.type_) {
-#define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
+#define FOR_EACH_DATA_TYPE(tag, _type, c_tag, sql_tag) \
                     case data_type::tag : \
                         result.datum_.tag = \
-                            reinterpret_cast<type>(result.ptr_.get()); \
+                            reinterpret_cast<_type>(result.ptr_.get()); \
+                        result.len_ = \
+                            (result_length \
+                             + this_request_ptr - result.ptr_.get()) \
+                            / sizeof(std::remove_pointer<_type>::type);
                         break;
 #include "pointer_types.def"
 

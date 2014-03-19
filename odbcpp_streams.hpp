@@ -9,9 +9,9 @@ namespace odbcpp {
 
 namespace detail {
 
-using wide_converter = std::wstring_convert<std::codecvt_utf8_utf16>;
+using codec = std::codecvt_utf8_utf16<wchar_t>;
 
-extern wide_converter wconvert;
+extern codec wconvert;
 
 }
 
@@ -72,8 +72,8 @@ std::wostream& operator<<(std::wostream& os, const odbcpp::datum& d)
             case data_type::long_varbinary:
                 p = d.get<data_type::long_varbinary>();
                 os << std::hex;
-                while (auto c = static_cast<unsigned char>(*p++) != 0)
-                    os << c;
+                for (std::size_t i = 0; i < d.length(); ++i)
+                    os << p[i];
                 os << std::dec;
                 return os;
 

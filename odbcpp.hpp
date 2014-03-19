@@ -324,6 +324,14 @@ class datum {
 
         operator bool() const { return !null_; }
 
+        std::size_t length() const
+        {
+            if (!detail::is_pointer_type(type_))
+                throw std::runtime_error("Request for length of scalar type.");
+
+            return len_;
+        }
+
         template<data_type Tag>
         typename detail::data_type_traits<Tag>::odbc_type get() const
         {
@@ -335,11 +343,12 @@ class datum {
 
     private:
         datum(data_type type)
-            : type_(type), null_(false), ptr_(nullptr), datum_() {}
+            : type_(type), null_(false), ptr_(nullptr), len_(0), datum_() {}
 
         data_type type_;
         bool null_;
         std::unique_ptr<unsigned char[]> ptr_;
+        std::size_t len_;
         union odbc_datum {
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) type tag;
 #include "nonpointer_types.def"

@@ -4,7 +4,7 @@ namespace odbcpp {
 
 namespace detail {
 
-wide_converter wconvert;
+codec wconvert;
 
 }
 
