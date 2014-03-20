@@ -323,13 +323,119 @@ inline std::size_t element_size(data_type type)
     throw std::invalid_argument("Bad type tag!");
 }
 
-
 }
 
 constexpr const char* type_name(data_type type) noexcept
 {
     return detail::type_names[static_cast<int>(type)];
 }
+
+class connection;
+
+class query;
+
+class datum;
+
+struct field;
+
+class connection {
+    public:
+        connection()
+            : conn_(shared_env_), connected_(false) {}
+
+        connection(const string& conn_str)
+            : connection() { connect(conn_str); }
+
+        template<class StrType>
+        connection(const StrType& conn_str)
+            : connection(make_string(conn_str)) {}
+
+        connection(const connection&) = delete;
+
+        connection(connection&&) noexcept = default;
+
+        connection& operator=(const connection&) = delete;
+
+        connection& operator=(connection&&) noexcept = default;
+
+        ~connection() noexcept { disconnect(); }
+
+        bool connect(const string& conn_str, bool prompt=false);
+
+        void disconnect() noexcept
+        {
+            if (connected_)
+                SQLDisconnect(conn_);
+        }
+
+        explicit operator bool() const noexcept { return connected_; }
+
+        query make_query();
+
+    private:
+        detail::handle<detail::handle_type::connection> conn_;
+
+        bool connected_;
+
+        static detail::handle<detail::handle_type::environment> shared_env_;
+
+        static struct env_initializer {
+            env_initializer();
+        } env_init_;
+};
+
+class datum;
+
+struct field {
+    std::string name;
+    data_type type;
+    std::size_t column_size;
+    std::size_t decimal_digits;
+    bool nullable;
+    bool name_truncated;
+};
+
+class query {
+    public:
+        query(const query&) = delete;
+
+        query(query&&) = default;
+
+        query& operator=(const query&) = delete;
+
+        query& operator=(query&&) = default;
+
+        ~query() noexcept = default;
+
+        explicit operator bool() const { return ready_ && !empty_; }
+
+        void execute(const string& statement);
+
+        void advance();
+
+        template<class StrType>
+        void execute(const StrType& statement)
+        {
+            execute(make_string(statement));
+        }
+
+        const std::vector<field>& fields() const;
+
+        datum get(std::size_t field);
+
+    private:
+        detail::handle<detail::handle_type::statement> stmt_;
+        std::vector<field> fields_;
+        bool ready_;
+        bool empty_;
+
+        query(detail::handle<detail::handle_type::connection>& conn)
+            : stmt_(conn), fields_(), ready_(false), empty_(false) {}
+
+        void update_fields();
+
+        friend query connection::make_query();
+};
 
 class datum {
     public:
@@ -380,7 +486,7 @@ class datum {
         typename detail::data_type_traits<Tag>::odbc_type
         get_impl() const noexcept;
 
-    friend class query;
+    friend datum query::get(std::size_t field);
 };
 
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \
@@ -395,105 +501,10 @@ inline type datum::get_impl<data_type::tag>() const noexcept \
 
 #undef FOR_EACH_DATA_TYPE
 
-class query;
-
-struct field {
-    std::string name;
-    data_type type;
-    std::size_t column_size;
-    std::size_t decimal_digits;
-    bool nullable;
-    bool name_truncated;
-};
-
-class connection {
-    public:
-        connection()
-            : conn_(shared_env_), connected_(false) {}
-
-        connection(const string& conn_str)
-            : connection() { connect(conn_str); }
-
-        template<class StrType>
-        connection(const StrType& conn_str)
-            : connection(make_string(conn_str)) {}
-
-        connection(const connection&) = delete;
-
-        connection(connection&&) noexcept = default;
-
-        connection& operator=(const connection&) = delete;
-
-        connection& operator=(connection&&) noexcept = default;
-
-        ~connection() noexcept { disconnect(); }
-
-        bool connect(const string& conn_str, bool prompt=false);
-
-        void disconnect() noexcept
-        {
-            if (connected_)
-                SQLDisconnect(conn_);
-        }
-
-        explicit operator bool() const noexcept { return connected_; }
-
-        query make_query();
-
-    private:
-        detail::handle<detail::handle_type::connection> conn_;
-
-        bool connected_;
-
-        static detail::handle<detail::handle_type::environment> shared_env_;
-
-        static struct env_initializer {
-            env_initializer();
-        } env_init_;
-};
-
-class query {
-    public:
-        query(detail::handle<detail::handle_type::connection>& conn)
-            : stmt_(conn), fields_(), ready_(false), empty_(false) {}
-
-        query(const query&) = delete;
-
-        query(query&&) = default;
-
-        query& operator=(const query&) = delete;
-
-        query& operator=(query&&) = default;
-
-        ~query() noexcept = default;
-
-        explicit operator bool() const { return ready_ && !empty_; }
-
-        void execute(const string& statement);
-
-        void advance();
-
-        template<class StrType>
-        void execute(const StrType& statement)
-        {
-            execute(make_string(statement));
-        }
-
-        const std::vector<field>& fields() const;
-
-        datum get(std::size_t field);
-
-    private:
-        detail::handle<detail::handle_type::statement> stmt_;
-        std::vector<field> fields_;
-        bool ready_;
-        bool empty_;
-
-        void update_fields();
-};
-
 inline query connection::make_query()
 {
+    if (!connected_)
+        throw std::runtime_error("No active connection for query!");
     return query(conn_);
 }
 
