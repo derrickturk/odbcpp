@@ -88,19 +88,11 @@ void query::update_fields()
                 static_cast<std::size_t>(name_len) > max_len - 1
         });
 
-        new_names[new_fields.back().name] = i;
+        new_names[new_fields.back().name] = i - 1;
     }
 
     fields_ = std::move(new_fields);
     names_ = std::move(new_names);
-}
-
-std::shared_ptr<datum> query::get(std::size_t field)
-{
-    if (!data_[field])
-        data_[field] = std::make_shared<datum>(get_impl(field));
-
-    return std::shared_ptr<datum>(data_[field]);
 }
 
 datum query::get_impl(std::size_t field)

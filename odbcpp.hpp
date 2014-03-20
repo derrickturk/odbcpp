@@ -414,6 +414,15 @@ class query {
 
         void advance();
 
+        // some DBMS require sequential access to fields
+        // this function will preload all fields in sequential order
+        // enabling subsequent random access
+        void preload()
+        {
+            for (std::vector<field>::size_type i = 0; i < fields_.size(); ++i)
+                static_cast<void>(get(i));
+        }
+
         template<class StrType>
         void execute(const StrType& statement)
         {
@@ -536,6 +545,14 @@ inline const std::vector<field>& query::fields() const
         throw std::runtime_error("No executed statement!");
 
     return fields_;
+}
+
+inline std::shared_ptr<datum> query::get(std::size_t field)
+{
+    if (!data_[field])
+        data_[field] = std::make_shared<datum>(get_impl(field));
+
+    return std::shared_ptr<datum>(data_[field]);
 }
 
 inline string make_string(const char* str) noexcept
