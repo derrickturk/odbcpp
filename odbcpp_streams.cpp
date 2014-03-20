@@ -98,8 +98,27 @@ walk_wide:
         }
     }
 
-    if (is_struct_type(d.type()))
-        return os << "<" << type_name(d.type()) << ">";
+    if (is_struct_type(d.type())) {
+        switch (d.type()) {
+            case data_type::date:
+                return os << "< date: " << d.date.year << "-" << d.date.month
+                    << "-" << d.date.day << " >";
+
+            case date_type::time:
+                return os << "< time: " << d.time.hour << ":" << d.time.minute
+                    << ":" << d.time.second << " >";
+
+            case data_type::timestamp:
+                return os << "< timestamp: " << d.timestamp.year << "-"
+                    << d.timestamp.month << "-" << d.timestamp.day << " "
+                    << d.timestamp.hour << ":" << d.timestamp.minute << ":"
+                    << d.timestamp.second << "+" << d.timestamp.fraction
+                    << "e-9 >";
+
+            default:
+                return os << "<" << type_name(d.type()) << ">";
+        }
+    }
 
     if (is_pointer_type(d.type()))
         throw std::runtime_error("Unknown pointer type!");
@@ -194,8 +213,27 @@ walk_binary:
         }
     }
 
-    if (is_struct_type(d.type()))
-        return os << "<" << type_name(d.type()) << ">";
+    if (is_struct_type(d.type())) {
+        switch (d.type()) {
+            case data_type::date:
+                return os << "< date: " << d.date.year << "-" << d.date.month
+                    << "-" << d.date.day << " >";
+
+            case date_type::time:
+                return os << "< time: " << d.time.hour << ":" << d.time.minute
+                    << ":" << d.time.second << " >";
+
+            case data_type::timestamp:
+                return os << "< timestamp: " << d.timestamp.year << "-"
+                    << d.timestamp.month << "-" << d.timestamp.day << " "
+                    << d.timestamp.hour << ":" << d.timestamp.minute << ":"
+                    << d.timestamp.second << "+" << d.timestamp.fraction
+                    << "e-9 >";
+
+            default:
+                return os << "<" << type_name(d.type()) << ">";
+        }
+    }
 
     if (is_pointer_type(d.type()))
         throw std::runtime_error("Unknown pointer type!");
