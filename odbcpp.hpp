@@ -487,6 +487,15 @@ class datum {
             return get_impl<Tag>();
         }
 
+        template<data_type Tag>
+        typename detail::data_type_traits<Tag>::odbc_type
+        coalesce(const typename detail::data_type_traits<Tag>::odbc_type& dflt)
+          const
+        {
+            if (null_) return dflt;
+            return get<Tag>();
+        }
+
     private:
         datum(data_type type)
             : type_(type), null_(false), ptr_(nullptr), len_(0), datum_() {}
