@@ -421,18 +421,21 @@ class query {
 
         const std::vector<field>& fields() const;
 
-        datum get(std::size_t field);
+        std::shared_ptr<datum> get(std::size_t field);
 
     private:
         detail::handle<detail::handle_type::statement> stmt_;
         std::vector<field> fields_;
+        std::vector<std::shared_ptr<datum>> data_;
         bool ready_;
         bool empty_;
 
         query(detail::handle<detail::handle_type::connection>& conn)
-            : stmt_(conn), fields_(), ready_(false), empty_(false) {}
+            : stmt_(conn), fields_(), data_(), ready_(false), empty_(false) {}
 
         void update_fields();
+
+        datum get_impl(std::size_t field);
 
         friend query connection::make_query();
 };
@@ -486,7 +489,7 @@ class datum {
         typename detail::data_type_traits<Tag>::odbc_type
         get_impl() const noexcept;
 
-    friend datum query::get(std::size_t field);
+    friend class query;
 };
 
 #define FOR_EACH_DATA_TYPE(tag, type, c_tag, sql_tag) \

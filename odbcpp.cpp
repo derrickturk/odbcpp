@@ -32,6 +32,7 @@ void query::execute(const string& statement)
                 std::string("Failed to retrieve first row!")
                 + " : " + stmt_.error_message());
 
+    data_ = std::vector<std::shared_ptr<datum>>(fields_.size());
     ready_ = true;
 }
 
@@ -47,6 +48,8 @@ void query::advance()
         throw std::runtime_error(
                 std::string("Failed to retrieve next row!")
                 + " : " + stmt_.error_message());
+
+    data_ = std::vector<std::shared_ptr<datum>>(fields_.size());
 }
 
 void query::update_fields()
@@ -87,7 +90,15 @@ void query::update_fields()
     fields_ = std::move(new_fields);
 }
 
-datum query::get(std::size_t field)
+std::shared_ptr<datum> query::get(std::size_t field)
+{
+    if (!data_[field])
+        data_[field] = std::make_shared<datum>(get_impl(field));
+
+    return std::shared_ptr<datum>(data_[field]);
+}
+
+datum query::get_impl(std::size_t field)
 {
     static const std::size_t buf_chunk = 256;
 

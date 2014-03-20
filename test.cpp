@@ -25,7 +25,7 @@ int main()
 
     while (q) {
         for (unsigned i = 0; i < q.fields().size(); ++i)
-            std::cout << (i ? "\t" : "") << q.get(i);
+            std::cout << (i ? "\t" : "") << *(q.get(i));
         std::cout << '\n';
         q.advance();
     }
