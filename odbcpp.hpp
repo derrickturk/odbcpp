@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include <map>
 #include <memory>
 #include <string>
 
@@ -423,15 +424,22 @@ class query {
 
         std::shared_ptr<datum> get(std::size_t field);
 
+        std::shared_ptr<datum> get(const std::string& field)
+        {
+            return get(names_.at(field));
+        }
+
     private:
         detail::handle<detail::handle_type::statement> stmt_;
         std::vector<field> fields_;
         std::vector<std::shared_ptr<datum>> data_;
+        std::map<std::string, std::size_t> names_;
         bool ready_;
         bool empty_;
 
         query(detail::handle<detail::handle_type::connection>& conn)
-            : stmt_(conn), fields_(), data_(), ready_(false), empty_(false) {}
+            : stmt_(conn), fields_(), data_(), names_(),
+            ready_(false), empty_(false) {}
 
         void update_fields();
 

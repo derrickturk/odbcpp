@@ -66,6 +66,8 @@ void query::update_fields()
     std::vector<field> new_fields;
     new_fields.reserve(n_fields);
 
+    std::map<std::string, std::size_t> new_names;
+
     SQLCHAR name_buf[max_len];
     SQLSMALLINT name_len, odbc_type, decimal_digits, nullable;
     SQLULEN col_size;
@@ -85,9 +87,12 @@ void query::update_fields()
                 nullable != SQL_NO_NULLS,
                 static_cast<std::size_t>(name_len) > max_len - 1
         });
+
+        new_names[new_fields.back().name] = i - 1;
     }
 
     fields_ = std::move(new_fields);
+    names_ = std::move(new_names);
 }
 
 std::shared_ptr<datum> query::get(std::size_t field)
