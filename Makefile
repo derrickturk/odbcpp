@@ -2,12 +2,12 @@ CXX=g++
 CXXOPTS=-std=c++11 -Wall -Wextra -Werror -pedantic -static-libgcc -static-libstdc++
 OPTOPTS=-fno-rtti -O3 -DNDEBUG
 #OPTOPTS=-g
-LINKOPTS=-L. -lodbc32 -lodbcpp
+LINKOPTS=-L. -lodbcpp -lodbc32
 AR=ar
 AROPTS=rcs
 
 test.exe: test.cpp libodbcpp.a
-	$(CXX) $(CXXOPTS) $(OPTOPTS) -o $@ $^ $(LINKOPTS) 
+	$(CXX) $(CXXOPTS) $(OPTOPTS) -o $@ $< $(LINKOPTS) 
 
 libodbcpp.a: odbcpp.o odbcpp_streams.o
 	$(AR) $(AROPTS) $@ $^
@@ -16,4 +16,4 @@ libodbcpp.a: odbcpp.o odbcpp_streams.o
 	$(CXX) $(CXXOPTS) $(OPTOPTS) -c -o $@ $<
 
 clean:
-	-rm *.o *.exe
+	-rm *.a *.o *.exe
