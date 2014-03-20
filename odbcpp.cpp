@@ -88,7 +88,7 @@ void query::update_fields()
                 static_cast<std::size_t>(name_len) > max_len - 1
         });
 
-        new_names[new_fields.back().name] = i - 1;
+        new_names[new_fields.back().name] = i;
     }
 
     fields_ = std::move(new_fields);
