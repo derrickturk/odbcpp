@@ -1,6 +1,6 @@
 CXX=g++
 CXXOPTS=-std=c++11 -Wall -Wextra -Werror -pedantic -static-libgcc -static-libstdc++
-OPTOPTS=-fno-rtti -O3 -DNDEBUG
+OPTOPTS=-s -fno-rtti -O3 -DNDEBUG
 #OPTOPTS=-g
 LINKOPTS=-L. -lodbcpp -lodbc32
 AR=ar

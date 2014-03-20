@@ -18,7 +18,8 @@ int main()
 
     if (q) {
         for (unsigned i = 0; i < q.fields().size(); ++i)
-            std::cout << (i ? "\t" : "") << q.fields()[i].name;
+            std::cout << (i ? "\t" : "") << q.fields()[i].name << " :: "
+                << q.fields()[i].type;
         std::cout << '\n';
     }
 

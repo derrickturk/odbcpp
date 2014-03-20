@@ -10,6 +10,12 @@ std::ostream& operator<<(std::ostream& os, const odbcpp::datum& d);
 
 std::wostream& operator<<(std::wostream& os, const odbcpp::datum& d);
 
+template<class StreamType>
+inline StreamType& operator<<(StreamType& os, const data_type& t)
+{
+    return os << type_name(t);
+}
+
 }
 
 #define ODBCPP_STREAMS_HPP
