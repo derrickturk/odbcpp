@@ -1,5 +1,7 @@
 #include "odbcpp_streams.hpp"
 
+#include <iomanip>
+
 #define DIRECT_OUTPUT_CASE(type, datum, str) \
     case data_type::type: \
         return str << datum.get<data_type::type>();
@@ -19,9 +21,15 @@ std::ostream& operator<<(std::ostream& os, const odbcpp::datum& d)
                 unsigned char* up;
                 char* p;
             };
+            char fill;
 
             case data_type::byte:
-                return os << std::hex << d.get<data_type::byte>() << std::dec;
+                fill = os.fill('0');
+                os << std::hex << std::setw(2)
+                    << static_cast<unsigned>(d.get<data_type::byte>())
+                    << std::dec;
+                os.fill(fill);
+                return os;
 
             case data_type::bit:
                 return os << static_cast<bool>(d.get<data_type::bit>());
@@ -49,10 +57,13 @@ std::ostream& operator<<(std::ostream& os, const odbcpp::datum& d)
             case data_type::long_varbinary:
                 up = d.get<data_type::long_varbinary>();
 walk_binary:
+                fill = os.fill('0');
                 os << std::hex;
                 for (std::size_t i = 0; i < d.length(); ++i)
-                    os << p[i];
+                    os << (i ? " " : "") << std::setw(2)
+                        << static_cast<unsigned>(p[i]);
                 os << std::dec;
+                os.fill(fill);
                 return os;
 
             default:
@@ -160,9 +171,15 @@ std::wostream& operator<<(std::wostream& os, const odbcpp::datum& d)
                 unsigned char* up;
                 char* p;
             };
+            char fill;
 
             case data_type::byte:
-                return os << std::hex << d.get<data_type::byte>() << std::dec;
+                fill = os.fill('0');
+                os << std::hex << std::setw(2)
+                    << static_cast<unsigned>(d.get<data_type::byte>())
+                    << std::dec;
+                os.fill(fill);
+                return os;
 
             case data_type::bit:
                 return os << static_cast<bool>(d.get<data_type::bit>());
@@ -193,10 +210,13 @@ walk_narrow:
             case data_type::long_varbinary:
                 up = d.get<data_type::long_varbinary>();
 walk_binary:
+                fill = os.fill('0');
                 os << std::hex;
                 for (std::size_t i = 0; i < d.length(); ++i)
-                    os << p[i];
+                    os << (i ? " " : "") << std::setw(2)
+                        << static_cast<unsigned>(p[i]);
                 os << std::dec;
+                os.fill(fill);
                 return os;
 
             default:
