@@ -61,7 +61,7 @@ walk_binary:
                 os << std::hex;
                 for (std::size_t i = 0; i < d.length(); ++i)
                     os << (i ? " " : "") << std::setw(2)
-                        << static_cast<unsigned>(p[i]);
+                        << static_cast<unsigned>(up[i]);
                 os << std::dec;
                 os.fill(fill);
                 return os;
@@ -214,7 +214,7 @@ walk_binary:
                 os << std::hex;
                 for (std::size_t i = 0; i < d.length(); ++i)
                     os << (i ? " " : "") << std::setw(2)
-                        << static_cast<unsigned>(p[i]);
+                        << static_cast<unsigned>(up[i]);
                 os << std::dec;
                 os.fill(fill);
                 return os;
