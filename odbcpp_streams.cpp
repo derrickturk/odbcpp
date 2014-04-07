@@ -111,25 +111,37 @@ walk_wide:
 
     if (is_struct_type(d.type())) {
         switch (d.type()) {
+            char fill;
+
             case data_type::date:
-                return os << "< date: " << d.get<data_type::date>().year << "-"
-                    << d.get<data_type::date>().month << "-"
-                    << d.get<data_type::date>().day << " >";
+                fill = os.fill('0');
+                os << d.get<data_type::date>().year << "-"
+                    << std::setw(2) << d.get<data_type::date>().month << "-"
+                    << std::setw(2) << d.get<data_type::date>().day;
+                os.fill(fill);
+                return os;
 
             case data_type::time:
-                return os << "< time: " << d.get<data_type::time>().hour << ":"
-                    << d.get<data_type::time>().minute << ":"
-                    << d.get<data_type::time>().second << " >";
+                fill = os.fill('0');
+                os << std::setw(2) << d.get<data_type::time>().hour << ":"
+                    << std::setw(2) << d.get<data_type::time>().minute << ":"
+                    << std::setw(2) << d.get<data_type::time>().second;
+                os.fill(fill);
+                return os;
 
             case data_type::timestamp:
-                return os << "< timestamp: "
-                    << d.get<data_type::timestamp>().year << "-"
-                    << d.get<data_type::timestamp>().month << "-"
-                    << d.get<data_type::timestamp>().day << " "
-                    << d.get<data_type::timestamp>().hour << ":"
-                    << d.get<data_type::timestamp>().minute << ":"
-                    << d.get<data_type::timestamp>().second << "+"
-                    << d.get<data_type::timestamp>().fraction << "e-9 >";
+                fill = os.fill('0');
+                os << d.get<data_type::timestamp>().year << "-"
+                    << std::setw(2) << d.get<data_type::timestamp>().month << "-"
+                    << std::setw(2) << d.get<data_type::timestamp>().day << " "
+                    << std::setw(2) << d.get<data_type::timestamp>().hour << ":"
+                    << std::setw(2) << d.get<data_type::timestamp>().minute << ":"
+                    << std::setw(2) << d.get<data_type::timestamp>().second;
+                if (d.get<data_type::timestamp>().fraction != 0.0)
+                    os << "+" << d.get<data_type::timestamp>().fraction
+                        << "e-9";
+                os.fill(fill);
+                return os;
 
             default:
                 return os << "<" << type_name(d.type()) << ">";
@@ -240,25 +252,37 @@ walk_binary:
 
     if (is_struct_type(d.type())) {
         switch (d.type()) {
+            char fill;
+
             case data_type::date:
-                return os << "< date: " << d.get<data_type::date>().year << "-"
-                    << d.get<data_type::date>().month << "-"
-                    << d.get<data_type::date>().day << " >";
+                fill = os.fill('0');
+                os << d.get<data_type::date>().year << "-"
+                    << std::setw(2) << d.get<data_type::date>().month << "-"
+                    << std::setw(2) << d.get<data_type::date>().day;
+                os.fill(fill);
+                return os;
 
             case data_type::time:
-                return os << "< time: " << d.get<data_type::time>().hour << ":"
-                    << d.get<data_type::time>().minute << ":"
-                    << d.get<data_type::time>().second << " >";
+                fill = os.fill('0');
+                os << std::setw(2) << d.get<data_type::time>().hour << ":"
+                    << std::setw(2) << d.get<data_type::time>().minute << ":"
+                    << std::setw(2) << d.get<data_type::time>().second;
+                os.fill(fill);
+                return os;
 
             case data_type::timestamp:
-                return os << "< timestamp: "
-                    << d.get<data_type::timestamp>().year << "-"
-                    << d.get<data_type::timestamp>().month << "-"
-                    << d.get<data_type::timestamp>().day << " "
-                    << d.get<data_type::timestamp>().hour << ":"
-                    << d.get<data_type::timestamp>().minute << ":"
-                    << d.get<data_type::timestamp>().second << "+"
-                    << d.get<data_type::timestamp>().fraction << "e-9 >";
+                fill = os.fill('0');
+                os << d.get<data_type::timestamp>().year << "-"
+                    << std::setw(2) << d.get<data_type::timestamp>().month << "-"
+                    << std::setw(2) << d.get<data_type::timestamp>().day << " "
+                    << std::setw(2) << d.get<data_type::timestamp>().hour << ":"
+                    << std::setw(2) << d.get<data_type::timestamp>().minute << ":"
+                    << std::setw(2) << d.get<data_type::timestamp>().second;
+                if (d.get<data_type::timestamp>().fraction != 0.0)
+                    os << "+" << d.get<data_type::timestamp>().fraction
+                        << "e-9";
+                os.fill(fill);
+                return os;
 
             default:
                 return os << "<" << type_name(d.type()) << ">";
