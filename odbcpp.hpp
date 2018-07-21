@@ -373,6 +373,9 @@ class connection {
 
         query make_query();
 
+        detail::handle<detail::handle_type::connection>::native_handle
+        native_handle() noexcept { return conn_; }
+
     private:
         detail::handle<detail::handle_type::connection> conn_;
 
